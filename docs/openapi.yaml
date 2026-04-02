@@ -1,0 +1,136 @@
+openapi: 3.0.3
+info:
+  title: Campaign Management API
+  version: 1.0.0
+servers:
+  - url: http://localhost:4000/api
+paths:
+  /auth/login:
+    post:
+      summary: Login and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Authenticated
+  /campaigns:
+    get:
+      security:
+        - bearerAuth: []
+      summary: List campaigns
+      responses:
+        '200':
+          description: Campaign collection
+    post:
+      security:
+        - bearerAuth: []
+      summary: Create a campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignInput'
+      responses:
+        '201':
+          description: Campaign created
+  /campaigns/{id}:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get single campaign
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Single campaign
+    put:
+      security:
+        - bearerAuth: []
+      summary: Update campaign
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignInput'
+      responses:
+        '200':
+          description: Campaign updated
+    delete:
+      security:
+        - bearerAuth: []
+      summary: Soft delete campaign
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Campaign soft-deleted
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CampaignInput:
+      type: object
+      required:
+        - name
+        - client
+        - status
+        - budget
+        - spend
+        - impressions
+        - clicks
+        - conversions
+      properties:
+        name:
+          type: string
+        client:
+          type: string
+        status:
+          type: string
+          enum: [active, paused, draft, archived]
+        budget:
+          type: number
+        spend:
+          type: number
+        revenue:
+          type: number
+        impressions:
+          type: integer
+        clicks:
+          type: integer
+        conversions:
+          type: integer
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date

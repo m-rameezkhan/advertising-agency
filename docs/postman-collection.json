@@ -1,0 +1,29 @@
+{
+  "info": {
+    "name": "Campaign Management API",
+    "_postman_id": "c73d78f3-1fdb-4bc0-b77f-57dd5dd2bb6a",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "http://localhost:4000/api/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "auth", "login"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@agency.local\",\n  \"password\": \"ChangeMe123!\"\n}"
+        }
+      }
+    }
+  ]
+}

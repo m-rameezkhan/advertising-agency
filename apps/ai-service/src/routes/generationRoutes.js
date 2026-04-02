@@ -1,0 +1,95 @@
+import { Router } from "express";
+import { env } from "../config/env.js";
+import { generateStructuredJson, streamStructuredJson } from "../services/openaiService.js";
+
+export function generationRoutes() {
+  const router = Router();
+
+  router.post("/copy", async (req, res, next) => {
+    try {
+      const { product, tone, platform, word_limit: wordLimit = 60, stream } = req.body || {};
+      const prompt = `
+        Return JSON with keys headline, body, cta.
+        Product: ${product}
+        Tone: ${tone}
+        Platform: ${platform}
+        Word limit: ${wordLimit}
+      `;
+
+      if (stream) {
+        await streamStructuredJson(prompt, res);
+        return;
+      }
+
+      res.json(await generateStructuredJson(prompt));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/social", async (req, res, next) => {
+    try {
+      const { platform, campaign_goal: campaignGoal, brand_voice: brandVoice } = req.body || {};
+      res.json(
+        await generateStructuredJson(`
+          Return JSON with key captions as an array of exactly 5 strings.
+          Platform: ${platform}
+          Campaign goal: ${campaignGoal}
+          Brand voice: ${brandVoice}
+        `)
+      );
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/hashtags", async (req, res, next) => {
+    try {
+      const { content, industry } = req.body || {};
+      res.json(
+        await generateStructuredJson(`
+          Return JSON with key hashtags as an array of exactly 10 hashtag strings.
+          Content: ${content}
+          Industry: ${industry}
+        `)
+      );
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/brief", async (req, res, next) => {
+    try {
+      res.json(
+        await generateStructuredJson(`
+          Return JSON with keys:
+          campaignTitle (string),
+          headlines (array of exactly 3 strings),
+          toneGuide (string),
+          channels (array of objects with name and allocation numeric percent),
+          heroVisual (string).
+
+          Client name: ${req.body.clientName}
+          Industry: ${req.body.industry}
+          Website: ${req.body.website}
+          Competitors: ${req.body.competitors}
+          Objective: ${req.body.objective}
+          Target audience: ${req.body.targetAudience}
+          Budget: ${req.body.budget}
+          Tone: ${req.body.tone}
+          Imagery style: ${req.body.imageryStyle}
+          Color direction: ${req.body.colorDirection}
+          Do and don't: ${req.body.dosDonts}
+        `)
+      );
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/health", (_req, res) => {
+    res.json({ status: "ok", service: "ai-content-generation", model: env.model });
+  });
+
+  return router;
+}

@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+coverage
+*.log
+.DS_Store
+apps/web/dist
+apps/api/dist
+apps/ai-service/dist
