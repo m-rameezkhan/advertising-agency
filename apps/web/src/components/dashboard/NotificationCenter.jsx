@@ -5,7 +5,7 @@ export function NotificationCenter({ items, unread, onMarkAllRead }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="relative">
+    <div className="relative z-30">
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
@@ -20,7 +20,7 @@ export function NotificationCenter({ items, unread, onMarkAllRead }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-20 mt-3 w-[340px] rounded-[28px] border border-white/10 bg-white/95 p-5 shadow-panel backdrop-blur dark:bg-ink-900/95">
+        <div className="absolute right-0 z-40 mt-3 w-[340px] rounded-[28px] border border-white/10 bg-white/95 p-5 shadow-panel backdrop-blur dark:bg-ink-900/95">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-ink-900 dark:text-white">Alerts</p>

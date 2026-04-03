@@ -15,7 +15,7 @@ export function PremiumHeader({ currentPath, darkMode, onToggleDarkMode, onOpenS
   const content = routeLabels[currentPath] || routeLabels["/dashboard"];
 
   return (
-    <header className="dashboard-card flex flex-col gap-3 px-4 py-3">
+    <header className="dashboard-card relative z-20 flex flex-col gap-3 px-4 py-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-3">
           <button
