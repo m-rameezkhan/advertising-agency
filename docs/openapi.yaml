@@ -23,9 +23,52 @@ paths:
       responses:
         '200':
           description: Authenticated
+  /auth/signup:
+    post:
+      summary: Create a new user account and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
   /campaigns:
     get:
       summary: List campaigns
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: sort
+          schema:
+            type: string
+        - in: query
+          name: direction
+          schema:
+            type: string
+            enum: [asc, desc]
+        - in: query
+          name: search
+          schema:
+            type: string
       responses:
         '200':
           description: Campaign collection
@@ -100,10 +143,8 @@ components:
         - client
         - status
         - budget
-        - spend
         - impressions
         - clicks
-        - conversions
       properties:
         name:
           type: string
@@ -116,6 +157,7 @@ components:
           type: number
         spend:
           type: number
+          default: 0
         revenue:
           type: number
         impressions:
@@ -124,6 +166,7 @@ components:
           type: integer
         conversions:
           type: integer
+          default: 0
         startDate:
           type: string
           format: date

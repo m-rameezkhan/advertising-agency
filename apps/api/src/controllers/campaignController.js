@@ -5,8 +5,8 @@ export function createCampaignController(io) {
   return {
     list: async (req, res, next) => {
       try {
-        const campaigns = await listCampaigns(req.query);
-        res.json({ data: campaigns });
+        const result = await listCampaigns(req.query);
+        res.json({ data: result.items, meta: result.meta });
       } catch (error) {
         next(error);
       }

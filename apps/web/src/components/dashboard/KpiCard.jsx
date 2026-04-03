@@ -8,16 +8,15 @@ export function KpiCard({ title, value, icon, trend, trendValue }) {
 
   return (
     <div className="kpi-card">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky/10 text-sky dark:bg-sky/20 dark:text-sky">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/5 dark:text-slate-200">
           {icon}
         </div>
-        <span className={`inline-flex rounded-xl px-2.5 py-1 text-xs font-semibold ${trendClasses}`}>{trendValue}</span>
+        <span className={`inline-flex rounded-lg px-2 py-1 text-[11px] font-semibold ${trendClasses}`}>{trendValue}</span>
       </div>
 
-      <p className="mt-5 text-sm font-medium text-slate-500 dark:text-slate-300">{title}</p>
-      <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
-      <div className="mt-4 h-1.5 w-16 rounded-full bg-gradient-to-r from-sky via-cyan-400 to-transparent shadow-[0_10px_24px_rgba(14,165,233,0.35)]" />
+      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-300">{title}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{value}</p>
     </div>
   );
 }

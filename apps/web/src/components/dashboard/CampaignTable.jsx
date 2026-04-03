@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Pencil, Plus, Trash2 } from "lucide-react";
 import { currency, number, percentage } from "../../lib/formatters";
 
 const badgeMap = {
@@ -11,7 +11,7 @@ const badgeMap = {
 
 const sortableColumns = ["name", "client", "status", "spend", "budget", "ctr", "conversions"];
 
-export function CampaignTable({ campaigns }) {
+export function CampaignTable({ campaigns, onCreate, onEdit, onDelete, activeActionId, deletePending }) {
   const [filter, setFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortConfig, setSortConfig] = useState({ key: "spend", direction: "desc" });
@@ -71,13 +71,13 @@ export function CampaignTable({ campaigns }) {
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">Search, sort, and review live campaign performance from the API.</p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px_auto]">
           <input
             type="text"
             placeholder="Search campaigns"
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
-            className="input-field sm:col-span-2"
+            className="input-field"
           />
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="select-field">
             <option value="all">All status</option>
@@ -86,6 +86,14 @@ export function CampaignTable({ campaigns }) {
             <option value="draft">Draft</option>
             <option value="archived">Archived</option>
           </select>
+          <button
+            type="button"
+            onClick={onCreate}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-ink-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-ink-900 dark:bg-white dark:text-ink-950"
+          >
+            <Plus size={16} />
+            New campaign
+          </button>
         </div>
       </div>
 
@@ -100,17 +108,22 @@ export function CampaignTable({ campaigns }) {
                 ["budget", "Budget"],
                 ["spend", "Spend"],
                 ["ctr", "CTR"],
-                ["conversions", "Conversions"]
+                ["conversions", "Conversions"],
+                ["actions", "Actions"]
               ].map(([column, label]) => (
                 <th key={column} className="table-cell">
-                  <button
-                    type="button"
-                    onClick={() => handleSort(column)}
-                    className="inline-flex items-center gap-2 font-semibold text-slate-700 transition hover:text-sky dark:text-slate-200 dark:hover:text-sky"
-                  >
-                    {label}
-                    {sortConfig.key === column && <SortIcon size={14} />}
-                  </button>
+                  {sortableColumns.includes(column) ? (
+                    <button
+                      type="button"
+                      onClick={() => handleSort(column)}
+                      className="inline-flex items-center gap-2 font-semibold text-slate-700 transition hover:text-sky dark:text-slate-200 dark:hover:text-sky"
+                    >
+                      {label}
+                      {sortConfig.key === column && <SortIcon size={14} />}
+                    </button>
+                  ) : (
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{label}</span>
+                  )}
                 </th>
               ))}
             </tr>
@@ -136,11 +149,33 @@ export function CampaignTable({ campaigns }) {
                   <td className="table-cell font-bold text-slate-900 dark:text-white">{currency(campaign.spend)}</td>
                   <td className="table-cell text-slate-600 dark:text-slate-300">{percentage(campaign.ctr)}</td>
                   <td className="table-cell text-slate-600 dark:text-slate-300">{number(campaign.conversions)}</td>
+                  <td className="table-cell">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(campaign)}
+                        disabled={deletePending}
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+                      >
+                        <Pencil size={14} />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(campaign)}
+                        disabled={deletePending}
+                        className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-60 dark:border-rose-500/30 dark:text-rose-200 dark:hover:bg-rose-500/10"
+                      >
+                        <Trash2 size={14} />
+                        {deletePending && activeActionId === campaign.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="7" className="table-cell py-10 text-center text-slate-500 dark:text-slate-300">
+                <td colSpan="8" className="table-cell py-10 text-center text-slate-500 dark:text-slate-300">
                   No campaigns matched the current filters.
                 </td>
               </tr>

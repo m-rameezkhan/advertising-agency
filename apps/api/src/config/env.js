@@ -8,6 +8,7 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL,
   jwtSecret: process.env.JWT_SECRET || "replace-me",
   clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  appUserName: process.env.APP_USER_NAME || "admin",
   appUserEmail: process.env.APP_USER_EMAIL || "admin@agency.local",
-  appUserPassword: process.env.APP_USER_PASSWORD || "ChangeMe123!"
+  appUserPassword: process.env.APP_USER_PASSWORD || "admin"
 };
