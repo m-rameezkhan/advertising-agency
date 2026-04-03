@@ -84,9 +84,35 @@ export function getStatusCounts(campaigns) {
   );
 }
 
-export function buildTrendSeries(campaigns, rangeInDays) {
+function resolveRange(range) {
   const today = toUtcDate(new Date());
-  const start = addDays(today, -(rangeInDays - 1));
+
+  if (typeof range === "number") {
+    return {
+      start: addDays(today, -(range - 1)),
+      end: today
+    };
+  }
+
+  const start = toUtcDate(range?.start);
+  const end = toUtcDate(range?.end);
+
+  if (!start || !end) {
+    return {
+      start: addDays(today, -29),
+      end: today
+    };
+  }
+
+  return {
+    start,
+    end
+  };
+}
+
+export function buildTrendSeries(campaigns, range) {
+  const { start, end } = resolveRange(range);
+  const rangeInDays = Math.max(diffDays(start, end) + 1, 1);
   const points = Array.from({ length: rangeInDays }, (_, index) => {
     const date = addDays(start, index);
 
@@ -107,10 +133,10 @@ export function buildTrendSeries(campaigns, rangeInDays) {
 
   campaigns.forEach((campaign) => {
     const campaignStart = toUtcDate(campaign.startDate || campaign.createdAt) || start;
-    const campaignEnd = toUtcDate(campaign.endDate) || today;
+    const campaignEnd = toUtcDate(campaign.endDate) || end;
     const activeDays = Math.max(diffDays(campaignStart, campaignEnd) + 1, 1);
 
-    if (campaignEnd < start || campaignStart > today) {
+    if (campaignEnd < start || campaignStart > end) {
       return;
     }
 
@@ -204,5 +230,17 @@ export function getTopCampaign(campaigns) {
 }
 
 export function getRangeLabel(rangeInDays) {
-  return rangeInDays === "7" ? "Last 7 days" : "Last 30 days";
+  if (rangeInDays === "7") {
+    return "Last 7 days";
+  }
+
+  if (rangeInDays === "30") {
+    return "Last 30 days";
+  }
+
+  if (rangeInDays === "90") {
+    return "Last 90 days";
+  }
+
+  return "Custom range";
 }

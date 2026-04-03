@@ -14,7 +14,9 @@ export async function listCampaigns({ page = 1, limit = 10, status, sort = "crea
     ? sort
     : "created_at";
   const safeDirection = direction.toLowerCase() === "asc" ? "ASC" : "DESC";
-  const offset = (Number(page) - 1) * Number(limit);
+  const safeLimit = Math.max(Number(limit) || 10, 1);
+  const safePage = Math.max(Number(page) || 1, 1);
+  const offset = (safePage - 1) * safeLimit;
   const values = [];
   const where = ["deleted_at IS NULL"];
 
@@ -28,8 +30,20 @@ export async function listCampaigns({ page = 1, limit = 10, status, sort = "crea
     where.push(`(name ILIKE $${values.length} OR client ILIKE $${values.length})`);
   }
 
-  values.push(limit);
+  const filterValues = [...values];
+  values.push(safeLimit);
   values.push(offset);
+
+  const [{ count }] = (
+    await pool.query(
+      `
+        SELECT COUNT(*)::int AS count
+        FROM campaigns
+        WHERE ${where.join(" AND ")}
+      `,
+      filterValues
+    )
+  ).rows;
 
   const { rows } = await pool.query(
     `
@@ -43,7 +57,17 @@ export async function listCampaigns({ page = 1, limit = 10, status, sort = "crea
     values
   );
 
-  return rows.map(mapCampaign);
+  return {
+    items: rows.map(mapCampaign),
+    meta: {
+      page: safePage,
+      limit: safeLimit,
+      total: count,
+      totalPages: Math.max(Math.ceil(count / safeLimit), 1),
+      sort: safeSort,
+      direction: safeDirection.toLowerCase()
+    }
+  };
 }
 
 export async function getCampaignById(id) {
@@ -67,7 +91,7 @@ export async function createCampaign(payload) {
       payload.status,
       payload.budget,
       payload.spend,
-      payload.revenue || payload.budget,
+      payload.revenue ?? payload.spend,
       payload.impressions,
       payload.clicks,
       payload.conversions,
@@ -105,7 +129,7 @@ export async function updateCampaign(id, payload) {
       payload.status,
       payload.budget,
       payload.spend,
-      payload.revenue || payload.budget,
+      payload.revenue ?? payload.spend,
       payload.impressions,
       payload.clicks,
       payload.conversions,

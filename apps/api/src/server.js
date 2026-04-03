@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import { env } from "./config/env.js";
 import { createApp } from "./app.js";
 import { pool } from "./db/pool.js";
+import { ensureAuthSchema } from "./services/authService.js";
 import { getAlertHistory } from "./services/alertService.js";
 
 const httpServer = http.createServer();
@@ -27,12 +28,12 @@ io.on("connection", async (socket) => {
 
 httpServer.listen(env.port, () => {
   console.log(`Campaign API listening on http://localhost:${env.port}`);
-  console.log("DB URL:", process.env.DATABASE_URL);
 });
 
 pool
   .query("SELECT 1")
-  .then(() => {
+  .then(async () => {
+    await ensureAuthSchema();
     console.log("Postgres connection established.");
   })
   .catch((error) => {

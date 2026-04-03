@@ -35,6 +35,16 @@ CREATE TABLE IF NOT EXISTS alert_history (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS app_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'account-manager',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 INSERT INTO campaigns (name, client, status, budget, spend, revenue, impressions, clicks, conversions, start_date, end_date)
 VALUES
   ('Lumiere Summer Launch', 'Lumiere Skincare', 'active', 50000, 32450, 155760, 2400000, 48000, 1200, '2026-03-01', '2026-04-15'),
@@ -48,4 +58,20 @@ WHERE NOT EXISTS (
   SELECT 1
   FROM alert_rules
   WHERE alert_rules.campaign_id = campaigns.id
+);
+
+INSERT INTO campaigns (name, client, status, budget, spend, revenue, impressions, clicks, conversions, start_date, end_date)
+SELECT 'Nova Retail Spring Push', 'Nova Retail', 'active', 38000, 21900, 94800, 1460000, 26100, 680, '2026-03-10', '2026-05-20'
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM campaigns
+  WHERE name = 'Nova Retail Spring Push' AND client = 'Nova Retail' AND deleted_at IS NULL
+);
+
+INSERT INTO campaigns (name, client, status, budget, spend, revenue, impressions, clicks, conversions, start_date, end_date)
+SELECT 'Peak Mobile Awareness', 'Peak Mobile', 'active', 42000, 28750, 120300, 1835000, 30400, 940, '2026-02-18', '2026-06-05'
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM campaigns
+  WHERE name = 'Peak Mobile Awareness' AND client = 'Peak Mobile' AND deleted_at IS NULL
 );

@@ -1,13 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { BarChart3, DollarSign, Eye, MousePointerClick, ShoppingCart, TrendingUp } from "lucide-react";
-import { Sidebar } from "../components/dashboard/Sidebar";
+import { CampaignFormModal } from "../components/dashboard/CampaignFormModal";
 import { ExecutiveSummary } from "../components/dashboard/ExecutiveSummary";
 import { KpiCard } from "../components/dashboard/KpiCard";
 import { TrendChart } from "../components/dashboard/TrendChart";
 import { CampaignTable } from "../components/dashboard/CampaignTable";
-import { NotificationCenter } from "../components/dashboard/NotificationCenter";
-import { ChartSkeleton, KPIGridSkeleton, SidebarSkeleton, TableSkeleton } from "../components/dashboard/Skeletons";
-import { fetchCampaigns } from "../lib/api";
+import { ChartSkeleton, KPIGridSkeleton, TableSkeleton } from "../components/dashboard/Skeletons";
 import {
   buildTrendSeries,
   calculateChange,
@@ -20,47 +18,25 @@ import {
 } from "../lib/dashboard";
 import { currency, number, percentage } from "../lib/formatters";
 
-export function CampaignDashboardPage({ darkMode, onToggleDarkMode, notifications }) {
+export function CampaignDashboardPage({
+  campaigns,
+  loading,
+  error,
+  mutationError,
+  mutationPending,
+  deletePending,
+  activeActionId,
+  saveCampaign,
+  removeCampaign,
+  clearMutationError,
+  refresh,
+  notifications
+}) {
   const [selectedRange, setSelectedRange] = useState("30");
-  const [campaigns, setCampaigns] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [reloadToken, setReloadToken] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadCampaigns() {
-      setLoading(true);
-      setError("");
-
-      try {
-        const response = await fetchCampaigns();
-
-        if (!active) {
-          return;
-        }
-
-        setCampaigns(response.map(normalizeCampaign));
-      } catch (loadError) {
-        if (!active) {
-          return;
-        }
-
-        setError(loadError.message || "Unable to load campaigns.");
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadCampaigns();
-
-    return () => {
-      active = false;
-    };
-  }, [reloadToken]);
+  const [customRange, setCustomRange] = useState({ start: "", end: "" });
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create");
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
 
   const totals = useMemo(() => calculateTotals(campaigns), [campaigns]);
   const statusCounts = useMemo(() => getStatusCounts(campaigns), [campaigns]);
@@ -68,9 +44,11 @@ export function CampaignDashboardPage({ darkMode, onToggleDarkMode, notification
   const trendByRange = useMemo(
     () => ({
       7: buildTrendSeries(campaigns, 7),
-      30: buildTrendSeries(campaigns, 30)
+      30: buildTrendSeries(campaigns, 30),
+      90: buildTrendSeries(campaigns, 90),
+      custom: customRange.start && customRange.end ? buildTrendSeries(campaigns, customRange) : []
     }),
-    [campaigns]
+    [campaigns, customRange]
   );
 
   const kpis = useMemo(() => {
@@ -133,33 +111,53 @@ export function CampaignDashboardPage({ darkMode, onToggleDarkMode, notification
     [campaigns, statusCounts.active, topCampaign, totals.pacing, totals.totalSpend]
   );
 
+  const openCreateModal = () => {
+    clearMutationError();
+    setModalMode("create");
+    setSelectedCampaign(null);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (campaign) => {
+    clearMutationError();
+    setModalMode("edit");
+    setSelectedCampaign(campaign);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    if (mutationPending) {
+      return;
+    }
+
+    setModalOpen(false);
+    setSelectedCampaign(null);
+    clearMutationError();
+  };
+
+  const handleSubmitCampaign = async (formValues) => {
+    try {
+      await saveCampaign(modalMode, formValues);
+      setModalOpen(false);
+      setSelectedCampaign(null);
+    } catch {}
+  };
+
+  const handleDeleteCampaign = async (campaign) => {
+    const confirmed = window.confirm(`Delete "${campaign.name}" from the dashboard?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await removeCampaign(campaign.id);
+    } catch {}
+  };
+
   return (
-    <div className="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 xl:grid-cols-[288px_minmax(0,1fr)]">
-      {loading ? <SidebarSkeleton /> : <Sidebar campaigns={campaigns} totals={totals} />}
-
-      <main className="space-y-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-ink-500 dark:text-ink-300">Live dashboard</p>
-            <h1 className="mt-2 text-3xl font-semibold text-ink-950 dark:text-white">Campaign Performance Dashboard</h1>
-          </div>
-
-          <div className="flex items-center gap-3 self-start xl:self-auto">
-            <button
-              type="button"
-              onClick={onToggleDarkMode}
-              className="rounded-2xl border border-white/10 bg-white/70 px-4 py-3 text-sm font-semibold text-ink-900 shadow-panel backdrop-blur dark:bg-ink-900/80 dark:text-white"
-            >
-              {darkMode ? "Light mode" : "Dark mode"}
-            </button>
-            <NotificationCenter
-              items={notifications.items}
-              unread={notifications.unread}
-              onMarkAllRead={notifications.markAllRead}
-            />
-          </div>
-        </div>
-
+    <>
+      <div className="space-y-6">
         {error ? (
           <div className="rounded-[28px] border border-rose-200 bg-rose-50/90 p-6 text-rose-900 shadow-panel dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100">
             <p className="text-sm font-semibold uppercase tracking-[0.24em]">Dashboard unavailable</p>
@@ -168,7 +166,7 @@ export function CampaignDashboardPage({ darkMode, onToggleDarkMode, notification
             </p>
             <button
               type="button"
-              onClick={() => setReloadToken((current) => current + 1)}
+              onClick={refresh}
               className="mt-4 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-500"
             >
               Retry request
@@ -177,6 +175,12 @@ export function CampaignDashboardPage({ darkMode, onToggleDarkMode, notification
         ) : (
           <>
             <ExecutiveSummary selectedRange={getRangeLabel(selectedRange)} connected={notifications.connected} summary={summary} />
+
+            {mutationError && !modalOpen && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100">
+                {mutationError}
+              </div>
+            )}
 
             {loading ? (
               <>
@@ -192,14 +196,37 @@ export function CampaignDashboardPage({ darkMode, onToggleDarkMode, notification
                   ))}
                 </div>
 
-                <TrendChart trendByRange={trendByRange} selectedRange={selectedRange} onRangeChange={setSelectedRange} />
+                <TrendChart
+                  trendByRange={trendByRange}
+                  selectedRange={selectedRange}
+                  onRangeChange={setSelectedRange}
+                  customRange={customRange}
+                  onCustomRangeChange={setCustomRange}
+                />
 
-                <CampaignTable campaigns={campaigns} />
+                <CampaignTable
+                  campaigns={campaigns.map(normalizeCampaign)}
+                  onCreate={openCreateModal}
+                  onEdit={openEditModal}
+                  onDelete={handleDeleteCampaign}
+                  activeActionId={activeActionId}
+                  deletePending={deletePending}
+                />
               </>
             )}
           </>
         )}
-      </main>
-    </div>
+      </div>
+
+      <CampaignFormModal
+        open={modalOpen}
+        mode={modalMode}
+        campaign={selectedCampaign}
+        onClose={closeModal}
+        onSubmit={handleSubmitCampaign}
+        submitting={mutationPending}
+        error={mutationError}
+      />
+    </>
   );
 }
