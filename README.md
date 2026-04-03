@@ -32,6 +32,8 @@ npm install
 psql "$DATABASE_URL" -f infra/db/schema.sql
 ```
 
+If you already have another PostgreSQL server on `5432`, update the project database URL and Docker port to use a different host port such as `5433`.
+
 5. Start the apps in separate terminals:
 
 ```bash
