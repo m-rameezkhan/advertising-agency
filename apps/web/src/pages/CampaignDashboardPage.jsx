@@ -1,77 +1,146 @@
-import React, { useMemo, useState } from "react";
-import campaignData from "../data/campaigns.json";
+import React, { useEffect, useMemo, useState } from "react";
+import { BarChart3, DollarSign, Eye, MousePointerClick, ShoppingCart, TrendingUp } from "lucide-react";
 import { Sidebar } from "../components/dashboard/Sidebar";
 import { ExecutiveSummary } from "../components/dashboard/ExecutiveSummary";
 import { KpiCard } from "../components/dashboard/KpiCard";
-import { DateRangePicker } from "../components/dashboard/DateRangePicker";
 import { TrendChart } from "../components/dashboard/TrendChart";
 import { CampaignTable } from "../components/dashboard/CampaignTable";
 import { NotificationCenter } from "../components/dashboard/NotificationCenter";
+import { ChartSkeleton, KPIGridSkeleton, SidebarSkeleton, TableSkeleton } from "../components/dashboard/Skeletons";
+import { fetchCampaigns } from "../lib/api";
+import {
+  buildTrendSeries,
+  calculateChange,
+  calculateRatioChange,
+  calculateTotals,
+  getRangeLabel,
+  getStatusCounts,
+  getTopCampaign,
+  normalizeCampaign
+} from "../lib/dashboard";
 import { currency, number, percentage } from "../lib/formatters";
 
 export function CampaignDashboardPage({ darkMode, onToggleDarkMode, notifications }) {
-  const [selectedRange, setSelectedRange] = useState("Last 30d");
-  const [customRange, setCustomRange] = useState({ start: "", end: "" });
-  const [filter, setFilter] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: "spend", direction: "desc" });
+  const [selectedRange, setSelectedRange] = useState("30");
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reloadToken, setReloadToken] = useState(0);
 
-  const campaigns = campaignData.campaigns;
+  useEffect(() => {
+    let active = true;
 
-  const filteredCampaigns = useMemo(() => {
-    const normalizedFilter = filter.toLowerCase();
-    return [...campaigns]
-      .filter((campaign) =>
-        [campaign.name, campaign.client, campaign.status].some((field) => field.toLowerCase().includes(normalizedFilter))
-      )
-      .sort((a, b) => {
-        const modifier = sortConfig.direction === "asc" ? 1 : -1;
-        return (a[sortConfig.key] - b[sortConfig.key]) * modifier;
-      });
-  }, [campaigns, filter, sortConfig]);
+    async function loadCampaigns() {
+      setLoading(true);
+      setError("");
 
-  const totals = useMemo(() => {
-    const totalImpressions = campaigns.reduce((sum, item) => sum + item.impressions, 0);
-    const totalClicks = campaigns.reduce((sum, item) => sum + item.clicks, 0);
-    const totalConversions = campaigns.reduce((sum, item) => sum + item.conversions, 0);
-    const totalSpend = campaigns.reduce((sum, item) => sum + item.spend, 0);
-    const totalBudget = campaigns.reduce((sum, item) => sum + item.budget, 0);
-    const ctr = totalImpressions ? (totalClicks / totalImpressions) * 100 : 0;
-    const roas = totalSpend ? (totalBudget / totalSpend).toFixed(1) : "0.0";
+      try {
+        const response = await fetchCampaigns();
 
-    return {
-      totalImpressions,
-      totalClicks,
-      ctr,
-      totalConversions,
-      totalSpend,
-      roas
+        if (!active) {
+          return;
+        }
+
+        setCampaigns(response.map(normalizeCampaign));
+      } catch (loadError) {
+        if (!active) {
+          return;
+        }
+
+        setError(loadError.message || "Unable to load campaigns.");
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadCampaigns();
+
+    return () => {
+      active = false;
     };
-  }, [campaigns]);
+  }, [reloadToken]);
 
-  const kpis = [
-    { title: "Impressions", value: number(totals.totalImpressions), change: "+12.4%", accent: "#56a7ff33" },
-    { title: "Clicks", value: number(totals.totalClicks), change: "+8.1%", accent: "#55d6be40" },
-    { title: "CTR", value: percentage(totals.ctr), change: "+0.3 pts", accent: "#f5c45155" },
-    { title: "Conversions", value: number(totals.totalConversions), change: "+15.2%", accent: "#56a7ff33" },
-    { title: "Spend", value: currency(totals.totalSpend), change: "92% pacing", accent: "#ff6b5744" },
-    { title: "ROAS", value: `${totals.roas}x`, change: "+0.8x", accent: "#55d6be40" }
-  ];
+  const totals = useMemo(() => calculateTotals(campaigns), [campaigns]);
+  const statusCounts = useMemo(() => getStatusCounts(campaigns), [campaigns]);
+  const topCampaign = useMemo(() => getTopCampaign(campaigns), [campaigns]);
+  const trendByRange = useMemo(
+    () => ({
+      7: buildTrendSeries(campaigns, 7),
+      30: buildTrendSeries(campaigns, 30)
+    }),
+    [campaigns]
+  );
 
-  const handleSort = (key) => {
-    setSortConfig((current) => ({
-      key,
-      direction: current.key === key && current.direction === "desc" ? "asc" : "desc"
-    }));
-  };
+  const kpis = useMemo(() => {
+    const trend30 = trendByRange[30];
+
+    return [
+      {
+        title: "Impressions",
+        value: number(totals.totalImpressions),
+        trendValue: calculateChange(trend30, "impressions").value,
+        trend: calculateChange(trend30, "impressions").trend,
+        icon: <Eye size={22} />
+      },
+      {
+        title: "Clicks",
+        value: number(totals.totalClicks),
+        trendValue: calculateChange(trend30, "clicks").value,
+        trend: calculateChange(trend30, "clicks").trend,
+        icon: <MousePointerClick size={22} />
+      },
+      {
+        title: "CTR",
+        value: percentage(totals.ctr),
+        trendValue: calculateRatioChange(trend30, "clicks", "impressions").value,
+        trend: calculateRatioChange(trend30, "clicks", "impressions").trend,
+        icon: <BarChart3 size={22} />
+      },
+      {
+        title: "Conversions",
+        value: number(totals.totalConversions),
+        trendValue: calculateChange(trend30, "conversions").value,
+        trend: calculateChange(trend30, "conversions").trend,
+        icon: <ShoppingCart size={22} />
+      },
+      {
+        title: "Spend",
+        value: currency(totals.totalSpend),
+        trendValue: calculateChange(trend30, "spend").value,
+        trend: calculateChange(trend30, "spend").trend,
+        icon: <DollarSign size={22} />
+      },
+      {
+        title: "ROAS",
+        value: `${totals.roas.toFixed(2)}x`,
+        trendValue: calculateRatioChange(trend30, "revenue", "spend").value,
+        trend: calculateRatioChange(trend30, "revenue", "spend").trend,
+        icon: <TrendingUp size={22} />
+      }
+    ];
+  }, [totals, trendByRange]);
+
+  const summary = useMemo(
+    () => ({
+      activeCampaigns: statusCounts.active || 0,
+      clientCount: new Set(campaigns.map((campaign) => campaign.client)).size,
+      topCampaign,
+      totalSpend: totals.totalSpend,
+      pacing: totals.pacing
+    }),
+    [campaigns, statusCounts.active, topCampaign, totals.pacing, totals.totalSpend]
+  );
 
   return (
-    <div className="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 xl:grid-cols-[280px_1fr]">
-      <Sidebar campaigns={campaigns} />
+    <div className="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 xl:grid-cols-[288px_minmax(0,1fr)]">
+      {loading ? <SidebarSkeleton /> : <Sidebar campaigns={campaigns} totals={totals} />}
 
       <main className="space-y-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-ink-500 dark:text-ink-300">Task 1.1</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-ink-500 dark:text-ink-300">Live dashboard</p>
             <h1 className="mt-2 text-3xl font-semibold text-ink-950 dark:text-white">Campaign Performance Dashboard</h1>
           </div>
 
@@ -91,31 +160,45 @@ export function CampaignDashboardPage({ darkMode, onToggleDarkMode, notification
           </div>
         </div>
 
-        <ExecutiveSummary selectedRange={selectedRange} connected={notifications.connected} />
+        {error ? (
+          <div className="rounded-[28px] border border-rose-200 bg-rose-50/90 p-6 text-rose-900 shadow-panel dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em]">Dashboard unavailable</p>
+            <p className="mt-3 text-sm leading-7">
+              The dashboard could not load campaign data from the API. {error}
+            </p>
+            <button
+              type="button"
+              onClick={() => setReloadToken((current) => current + 1)}
+              className="mt-4 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-500"
+            >
+              Retry request
+            </button>
+          </div>
+        ) : (
+          <>
+            <ExecutiveSummary selectedRange={getRangeLabel(selectedRange)} connected={notifications.connected} summary={summary} />
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {kpis.map((kpi) => (
-            <KpiCard key={kpi.title} {...kpi} />
-          ))}
-        </div>
+            {loading ? (
+              <>
+                <KPIGridSkeleton />
+                <ChartSkeleton />
+                <TableSkeleton />
+              </>
+            ) : (
+              <>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+                  {kpis.map((kpi) => (
+                    <KpiCard key={kpi.title} {...kpi} />
+                  ))}
+                </div>
 
-        <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
-          <DateRangePicker
-            selected={selectedRange}
-            onSelect={setSelectedRange}
-            customRange={customRange}
-            onCustomRangeChange={setCustomRange}
-          />
-          <TrendChart trend={campaignData.trend} />
-        </div>
+                <TrendChart trendByRange={trendByRange} selectedRange={selectedRange} onRangeChange={setSelectedRange} />
 
-        <CampaignTable
-          campaigns={filteredCampaigns}
-          sortConfig={sortConfig}
-          onSort={handleSort}
-          filter={filter}
-          onFilter={setFilter}
-        />
+                <CampaignTable campaigns={campaigns} />
+              </>
+            )}
+          </>
+        )}
       </main>
     </div>
   );

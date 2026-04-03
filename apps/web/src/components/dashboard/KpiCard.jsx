@@ -1,17 +1,23 @@
 import React from "react";
 
-export function KpiCard({ title, value, change, accent }) {
+export function KpiCard({ title, value, icon, trend, trendValue }) {
+  const trendClasses =
+    trend === "down"
+      ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
+      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200";
+
   return (
-    <div className="rounded-[28px] border border-white/10 bg-white/70 p-5 shadow-panel backdrop-blur dark:bg-ink-900/80">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-ink-500 dark:text-ink-300">{title}</p>
-          <p className="mt-3 text-3xl font-semibold text-ink-950 dark:text-white">{value}</p>
+    <div className="kpi-card">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky/10 text-sky dark:bg-sky/20 dark:text-sky">
+          {icon}
         </div>
-        <span className="inline-flex rounded-full px-3 py-1 text-xs font-semibold text-ink-950" style={{ backgroundColor: accent }}>
-          {change}
-        </span>
+        <span className={`inline-flex rounded-xl px-2.5 py-1 text-xs font-semibold ${trendClasses}`}>{trendValue}</span>
       </div>
+
+      <p className="mt-5 text-sm font-medium text-slate-500 dark:text-slate-300">{title}</p>
+      <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
+      <div className="mt-4 h-1.5 w-16 rounded-full bg-gradient-to-r from-sky via-cyan-400 to-transparent shadow-[0_10px_24px_rgba(14,165,233,0.35)]" />
     </div>
   );
 }

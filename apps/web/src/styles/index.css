@@ -29,3 +29,37 @@ body {
 #root {
   min-height: 100vh;
 }
+
+@layer components {
+  .dashboard-card {
+    @apply rounded-[30px] border border-slate-200/70 bg-white/80 p-6 shadow-panel backdrop-blur dark:border-white/10 dark:bg-slate-950/70;
+  }
+
+  .kpi-card {
+    @apply rounded-[30px] border border-slate-200/70 bg-white/85 p-5 shadow-panel backdrop-blur transition-transform duration-200 hover:-translate-y-1 dark:border-white/10 dark:bg-slate-950/75;
+  }
+
+  .input-field {
+    @apply rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky focus:ring-2 focus:ring-sky/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:ring-sky/20;
+  }
+
+  .select-field {
+    @apply rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky focus:ring-2 focus:ring-sky/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:ring-sky/20;
+  }
+
+  .table {
+    @apply min-w-full border-separate border-spacing-y-2 text-left text-sm;
+  }
+
+  .table-header {
+    @apply text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-slate-400;
+  }
+
+  .table-row {
+    @apply rounded-2xl bg-slate-50/80 transition hover:bg-sky/10 dark:bg-white/5 dark:hover:bg-sky/10;
+  }
+
+  .table-cell {
+    @apply px-4 py-4 align-middle first:rounded-l-2xl last:rounded-r-2xl;
+  }
+}
